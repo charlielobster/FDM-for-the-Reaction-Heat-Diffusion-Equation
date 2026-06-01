@@ -1,3 +1,5 @@
+import numpy as np
+
 def solver_dufort_frankel(x, dx, dt, t_final, a, k):
     """
     DuFort-Frankel Explicit Scheme.

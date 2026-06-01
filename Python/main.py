@@ -51,10 +51,10 @@ if __name__ == "__main__":
     # Formatting outputs for easy inspection
     print(f"\n[RUN A] Delta X = 0.2, Delta T = 0.1  (Courant r = 2.5)")
     print(f" -> FTCS Error:           {err_ftcs_A}")
-    print(f" -> DuFort-Frankel Error: {err_df_A:.6f if isinstance(err_df_A, float) else err_df_A}")
-    print(f" -> MOL / RK4 Error:      {err_rk4_A:.6f if isinstance(err_rk4_A, float) else err_rk4_A}")
+    print(f" -> DuFort-Frankel Error: {err_df_A}")
+    print(f" -> MOL / RK4 Error:      {err_rk4_A}")
     
     print(f"\n[RUN B] Delta X = 0.1, Delta T = 0.05 (Courant r = 5.0)")
     print(f" -> FTCS Error:           {err_ftcs_B}")
-    print(f" -> DuFort-Frankel Error: {err_df_B:.6f if isinstance(err_df_B, float) else err_df_B}")
-    print(f" -> MOL / RK4 Error:      {err_rk4_B:.6f if isinstance(err_rk4_B, float) else err_rk4_B}")
+    print(f" -> DuFort-Frankel Error: {err_df_B}")
+    print(f" -> MOL / RK4 Error:      {err_rk4_B}")
