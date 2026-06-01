@@ -4,6 +4,7 @@ from analytic_solution import analytical_solution
 from ftcs import solver_ftcs
 from dufort_frankel import solver_dufort_frankel
 from rk4 import solver_rk4
+from make_pngs import make_pngs
 
 def run_project_simulation(dx, dt, t_final=1.0, a=1.0, k=0.1):
     """
@@ -55,6 +56,8 @@ if __name__ == "__main__":
     print(f" -> MOL / RK4 Error:      {err_rk4_A}")
     
     print(f"\n[RUN B] Delta X = 0.1, Delta T = 0.05 (Courant r = 5.0)")
-    print(f" -> FTCS Error:           {err_ftcs_B}")
+    print(f" -> FTCS Error:           {.2f:err_ftcs_B}")
     print(f" -> DuFort-Frankel Error: {err_df_B}")
     print(f" -> MOL / RK4 Error:      {err_rk4_B}")
+
+    make_pngs()
