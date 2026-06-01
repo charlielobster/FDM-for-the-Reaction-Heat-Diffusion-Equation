@@ -1,11 +1,9 @@
 import numpy as np
 
-# Assuming your separate files are saved as analytical.py, ftcs.py, dufort.py, rk4.py
-# (or just functions imported into your current namespace)
-# from analytical import analytical_solution
-# from ftcs import solver_ftcs
-# from dufort import solver_dufort_frankel
-# from rk4 import solver_rk4
+from analytic_solution import analytical_solution
+from ftcs import solver_ftcs
+from dufort_frankel import solver_dufort_frankel
+from rk4 import solver_rk4
 
 def run_project_simulation(dx, dt, t_final=1.0, a=1.0, k=0.1):
     """
