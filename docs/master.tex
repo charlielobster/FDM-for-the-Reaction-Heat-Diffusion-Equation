@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{cancel}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{pdflscape}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{courier}
+\usepackage{hyperref}
+
+\geometry{margin=1in}
+
+\begin{document}
+
+\title{Finite Difference Method \\ \large for the Reaction Heat/Diffusion Equation}
+\author{Erik Brobyn}
+\date{}
+\maketitle
+
+\input{intro}
+\include{part1}
+\include{part2}
+\include{part3}
+\include{part4}
+\include{part5}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{solver_comparison_profile.png}
+    \caption{Enter Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsection*{Plotting Notes}
+Show the physical effects of $a$ and $k$:
+\begin{itemize}
+    \item Effect of $a$ (Diffusion Coefficient): Higher values of $a$ flatten out the concentration pulse faster over space ($x$).
+    \item Effect of $k$ (Reaction/Decay Coefficient): Higher values of $k$ exponentially decrease the peak amplitude over time ($t$) without widening the spread.
+\end{itemize}
+
+
+\end{document}

@@ -1,0 +1,101 @@
+\section{Benchmark Comparison with Alternative FDM Stencils}
+
+\subsection*{Three Popular Explicit FDMs: FTCS, DuFort-Frankel, RK4}
+\subsection*{Benchmark: FTCS}
+\paragraph{}
+FTCS approximates the time derivative using an first-order (explicit) forward difference, and the spatial derivative using a second-order central difference. Although a straightforward implementation, it can be limited by its stability requirements. The time step ($\Delta t$) is therefore tightly bound to the spatial dimension size ($\Delta x$).
+\paragraph{}
+Recall from (\ref{eq:ftcsstencil}), the FTCS Stencil Update Formula:
+\begin{equation}
+C_i^{n+1} = C_i^n + \Delta t \left[ a \frac{C_{i+1}^n - 2C_i^n + C_{i-1}^n}{(\Delta x)^2} - k C_i^n \right]
+\end{equation}
+
+\subsubsection*{Stability Check: Courant Number}
+\paragraph{}
+A large decay coefficient ($k$) impacts the maximum allowable time step, as a fast reaction can trigger numerical underflow or artificial negative concentrations if $\Delta t$ is too large. For an explicit scheme to remain stable, the Courant number must satisfy:
+\begin{equation}
+\label{eq:courantnumber}
+\frac{a \Delta t}{k + \Delta x^2} \leq 0.5
+\end{equation}
+
+\subsection*{DuFort-Frankel Method}
+\paragraph{}
+DuFort-Frankel alters the standard FTCS stencil by replacing the central node value $C_i^n$ with an average of its past and future values ($C_i^{n+1} + C_i^{n-1})/2$. Thus, it eliminates the explicit stability barrier by averaging past and future time states, thereby transforming the standard two-level explicit scheme into a three-level unconditionally stable explicit scheme. Note however that since it is a three-time-level scheme, it requires a different method (like FTCS) to calculate the very first time step. If $\Delta t$ is too large, it can introduce non-physical wave errors.
+\paragraph{}
+Leapfrog Approximation Formula: Replaces $C_i^n$ with a spatial average:
+\begin{equation*}
+\frac{C_i^{n+1} - C_i^{n-1}}{2\Delta t} = a \frac{C_{i+1}^n - (C_i^{n+1} + C_i^{n-1}) + C_{i-1}^n}{(\Delta x)^2} - k \left( \frac{C_i^{n+1} + C_i^{n-1}}{2} \right)
+\end{equation*}
+
+\subsection*{Fourth-Order Runge-Kutta (RK4) with Explicit Time-Steps}
+\paragraph{}
+Coupling standard central space differences with an explicit RK4 loop achieves higher temporal accuracy than standard FTCS. Instead of using a simple forward Euler step for time, the space domain is discretized using standard central differences into a system of ODEs (Method of Lines).  Then, an explicit RK4 loop is used to march through time. While the jump in temporal accuracy improves tracking, the algorithm itself requires four times as many spatial derivative evaluations, significantly increasing the computational cost. 
+\paragraph{} 
+\textbf{Courant Number}
+\begin{equation*}
+\Delta t(\frac{4a}{\Delta x^2} + k) \leq 2.785
+\end{equation*}
+
+\subsubsection*{Procedure: Method of Lines (MOL)} 
+\paragraph{}
+MOL is a framework where space is first discretized (using Finite Difference or Element Methods), thereby converting the PDE into a massive system of coupled ODEs. This allows for time-step off-loading to adaptive solvers like RK4 or Backward Differentiation Formula (BDF). MOL approximates the second-order spatial derivative with central differences.
+\begin{equation*}
+\frac{dC_i}{dt} = f(C_i) = a \frac{C_{i+1} - 2C_i + C_{i-1}}{(\Delta x)^2} - kC_i
+\end{equation*}
+\paragraph{}
+Where $C_i(t)$ represents the time-dependent continuous concentration at the spatial node $i$, and $f(C_i)$ serves as the evaluation function passed to the time integrator. 
+
+\subsubsection*{RK4 Methodology}
+\paragraph{}
+To advance the semi-discrete system from time $t^n$ to $t^{n+1}$, four sequential intermediate evaluations ($k_1$ through $k_4$) are calculated across all grid points simultaneously:
+
+\begin{itemize}
+
+\item[] 1: Initial Evaluation
+\begin{equation*}
+k_{1,i} = f(C_i^n) = a \frac{C_{i+1}^n - 2C_i^n + C_{i-1}^n}{(\Delta x)^2} - kC_i^n
+\end{equation*}
+
+\item[] 2: First Midpoint Predictor
+\begin{equation*}
+C_{i,1} = C_i^n + \frac{\Delta t}{2} k_{1,i}
+\end{equation*}
+\begin{equation*}
+k_{2,i} = f(C_{i,1}) = a \frac{C_{i+1,1} - 2C_{i,1} + C_{i-1,1}}{(\Delta x)^2} - kC_{i,1}
+\end{equation*}
+
+\item[] 3: Second Midpoint Predictor
+\begin{equation*}
+C_{i,2} = C_i^n + \frac{\Delta t}{2} k_{2,i}
+\end{equation*}
+\begin{equation*}
+k_{3,i} = f(C_{i,2}) = a \frac{C_{i+1,2} - 2C_{i,2} + C_{i-1,2}}{(\Delta x)^2} - kC_{i,2}
+\end{equation*}
+
+\item[] 4: Full-Step Predictor
+\begin{equation*}
+C_{i,4} = C_i^n + \Delta t \, k_{3,i}
+\end{equation*}
+\begin{equation*}
+k_{4,i} = f(C_{i,4}) = a \frac{C_{i+1,4} - 2C_{i,4} + C_{i-1,4}}{(\Delta x)^2} - kC_{i,4}
+\end{equation*}
+
+\item[] Finally, resolved using a weighted average of all four intermediate stages
+\begin{equation*}
+C_i^{n+1} = C_i^n + \frac{\Delta t}{6} \left( k_{1,i} + 2k_{2,i} + 2k_{3,i} + k_{4,i} \right)
+\end{equation*}
+
+\end{itemize}
+
+\subsection*{Implicit FDMs}
+\paragraph{}
+Implicit (backward) FDMs solve a simultaneous linear system across the whole grid at once. They are unconditionally stable and allow for large time steps $\Delta t$ without exploding.
+
+\subsubsection*{Implicit Backward-Time Central-Space (BTCS)}
+\paragraph{}
+An implementation of this method is part of a general algorithmic comparison in Part 5. Algebraic Matrix Formula: Let $\mu = \frac{a \Delta t}{(\Delta x)^2}$. The system forms a tri-diagonal linear array:
+\begin{equation*}
+-\mu C_{i-1}^{n+1} + \left(1 + 2\mu + k\Delta t\right) C_i^{n+1} - \mu C_{i+1}^{n+1} = C_i^n
+\end{equation*}
+\paragraph{}
+Unconditionally stable ($\mathcal{O}(\Delta t, \Delta x^2)$).

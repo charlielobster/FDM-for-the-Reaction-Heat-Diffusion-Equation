@@ -1,0 +1,94 @@
+\section{Benchmark Stencil Derivation}
+\paragraph{}
+What follows is an analysis of the stenciling technique used to approximate the solution for (\ref{eq:rhd}) with ICs (\ref{eq:ics}) using the standard Explicit FDM, Forward-Time-Central-Space (FTCS), and its derivation directly from the Taylor Series Expansion.
+\paragraph{}
+Let $C(x,t)$ be defined as in (\ref{eq:fas}), the unique solution for (\ref{eq:rhd}) with ICs (\ref{eq:ics}). Recall also that $a$ is the diffusion coefficient ($a > 0$), and $k$ is the reaction or decay coefficient ($k \geq 0$). 
+
+\subsection*{Domain Discretizations}
+\paragraph{}
+To solve the equation numerically, we map the continuous domain onto a discrete grid with uniform spacing. Space is partitioned into $N_x$ nodes with spacing $\Delta x$, indexed by $i$. Time is partitioned into snapshots with interval $\Delta t$, indexed by $n$.
+\begin{itemize}
+\item[] Spatial step size: $\Delta x$, where $x_i = i\Delta x$
+\item[] Temporal step size: $\Delta t$, where $t_n = n\Delta t$
+\item[] Grid notation: $C(x_i, t_n) \approx C_i^n$
+\end{itemize}
+
+\subsection*{Taylor Series Expansion}
+\paragraph{}
+The foundation of any finite difference method relies on approximating derivatives using a Taylor series expansion. If a function $f(x)$ is infinitely differentiable in the neighborhood of a point $x_0$, the value of the function at a nearby point $x = x_0 + \Delta x$ can be expressed as an infinite sum of its derivatives evaluated at $x_0$:
+\begin{equation}
+\label{eq:tsee}
+f(x_0 + \Delta x) = f(x_0) + \Delta x f'(x_0) + \frac{(\Delta x)^2}{2!} f''(x_0) + \frac{(\Delta x)^3}{3!} f'''(x_0) + \dots + \frac{(\Delta x)^m}{m!} f^{(m)}(x_0) + \dots
+\end{equation}
+\paragraph{}
+Using compact summation notation, this is written as:
+\begin{equation}
+\label{eq:tsec}
+f(x_0 + \Delta x) = \sum_{m=0}^{\infty} \frac{(\Delta x)^m}{m!} f^{(m)}(x_0)
+\end{equation}
+\paragraph{}
+In numerical analysis, this infinite series is truncated after a finite number of terms. The remaining terms are grouped together and represented using Big-O notation, $\mathcal{O}((\Delta x)^m)$, which dictates the asymptotic truncation error and the accuracy of the numerical approximation as $\Delta x \to 0$.
+
+\subsection*{Temporal Derivative (Forward Difference)}
+\paragraph{}
+To approximate the first-order temporal derivative $\frac{\partial C}{\partial t}$, we expand $C$ forward in time ($t + \Delta t$) around the reference point $(x_i, t_n)$ using a Taylor series expansion:
+\begin{equation*}
+C_i^{n+1} = C_i^n + \Delta t \left( \frac{\partial C}{\partial t} \right)_i^n + \frac{(\Delta t)^2}{2!} \left( \frac{\partial^2 C}{\partial t^2} \right)_i^n + \mathcal{O}((\Delta t)^3)
+\end{equation*}
+
+We isolate the first derivative term to solve for our algebraic approximation:
+\begin{equation*}
+\left( \frac{\partial C}{\partial t} \right)_i^n = \frac{C_i^{n+1} - C_i^n}{\Delta t} - \mathcal{O}(\Delta t)
+\end{equation*}
+
+By dropping the higher-order error terms $\mathcal{O}(\Delta t)$, we obtain the first-order accurate Forward Difference formula:
+\begin{equation}
+\label{eq:ftcsfd}
+\left( \frac{\partial C}{\partial t} \right)_i^n \approx \frac{C_i^{n+1} - C_i^n}{\Delta t}
+\end{equation}
+
+\subsection*{Spatial Derivative (Central Difference)}
+\paragraph{}
+To approximate the second-order spatial derivative $\frac{\partial^2 C}{\partial x^2}$, we write two Taylor series expansions around the spatial reference point $(x_i, t_n)$: one step forward ($x + \Delta x$) and one step backward ($x - \Delta x$).
+
+The forward spatial expansion is:
+\begin{equation*}
+C_{i+1}^n = C_i^n + \Delta x \left( \frac{\partial C}{\partial x} \right)_i^n + \frac{(\Delta x)^2}{2} \left( \frac{\partial^2 C}{\partial x^2} \right)_i^n + \frac{(\Delta x)^3}{6} \left( \frac{\partial^3 C}{\partial x^3} \right)_i^n + \frac{(\Delta x)^4}{24} \left( \frac{\partial^4 C}{\partial x^4} \right)_i^n + \mathcal{O}((\Delta x)^5)
+\end{equation*}
+
+The backward spatial expansion is:
+\begin{equation*}
+C_{i-1}^n = C_i^n - \Delta x \left( \frac{\partial C}{\partial x} \right)_i^n + \frac{(\Delta x)^2}{2} \left( \frac{\partial^2 C}{\partial x^2} \right)_i^n - \frac{(\Delta x)^3}{6} \left( \frac{\partial^3 C}{\partial x^3} \right)_i^n + \frac{(\Delta x)^4}{24} \left( \frac{\partial^4 C}{\partial x^4} \right)_i^n - \mathcal{O}((\Delta x)^5)
+\end{equation*}
+
+Adding these two equations together allows the odd-powered spatial derivative terms ($\Delta x$ and $(\Delta x)^3$) to cancel out perfectly:
+\begin{equation*}
+C_{i+1}^n + C_{i-1}^n = 2C_i^n + (\Delta x)^2 \left( \frac{\partial^2 C}{\partial x^2} \right)_i^n + \frac{(\Delta x)^4}{12} \left( \frac{\partial^4 C}{\partial x^4} \right)_i^n + \mathcal{O}((\Delta x)^6)
+\end{equation*}
+
+Isolating the second-order spatial derivative gives:
+\begin{equation*}
+\left( \frac{\partial^2 C}{\partial x^2} \right)_i^n = \frac{C_{i+1}^n - 2C_i^n + C_{i-1}^n}{(\Delta x)^2} - \mathcal{O}((\Delta x)^2)
+\end{equation*}
+
+Truncating the error terms yields the second-order accurate Central Difference formula:
+\begin{equation}
+\label{eq:ftcscd}
+\left( \frac{\partial^2 C}{\partial x^2} \right)_i^n \approx \frac{C_{i+1}^n - 2C_i^n + C_{i-1}^n}{(\Delta x)^2}
+\end{equation}
+
+\subsection*{Stencil Assembly}
+\paragraph{}
+Substitute the temporal (\ref{eq:ftcsfd}) and the spatial (\ref{eq:ftcscd}) derivative approximations back into (\ref{eq:rhd}):
+\begin{equation*}
+\frac{C_i^{n+1} - C_i^n}{\Delta t} = a \frac{C_{i+1}^n - 2C_i^n + C_{i-1}^n}{(\Delta x)^2} - kC_i^n
+\end{equation*}
+\paragraph{}
+Rearrange to solve for the next time step $C_i^{n+1}$, and we arrive at (\ref{eq:ftcsstencil}), the FTCS Stencil:
+\begin{equation*}
+C_i^{n+1} = C_i^n + \Delta t \left[ a \frac{C_{i+1}^n - 2C_i^n + C_{i-1}^n}{(\Delta x)^2} - kC_i^n \right]
+\end{equation*}
+
+\subsection*{Truncation Error}
+\paragraph{}
+The global truncation error for this numerical scheme is quantified as $\mathcal{O}(\Delta t) + \mathcal{O}((\Delta x)^2)$.

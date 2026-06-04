@@ -1,0 +1,31 @@
+\section*{Introduction} 
+
+\subsubsection*{Reaction Heat/Diffusion Equation}
+\begin{equation}
+\label{eq:rhd}
+\frac{\partial C}{\partial t} = a \frac{\partial^2 C}{\partial x^2} - kC
+\end{equation}
+
+\subsubsection*{Initial Conditions (IC)}
+\begin{equation}
+\label{eq:ics}
+C(x,0) = \begin{cases} 1 & |x| < 1 \\ 0 & |x| > 1 \end{cases}
+\end{equation}
+
+\paragraph{}
+Note these conditions are symmetric about x.
+\paragraph{}
+The governing partial differential equation (PDE) for this report, the Reaction Heat/Diffusion Equation (\ref{eq:rhd}), and the classic engineering problem surrounding it, predicts how substances spread out and disappear over time. For example, we could call $C(x,t)$ the Scalar Pollutant Concentration. Start with a localized amount dumped into an infinite space at time zero. Two physical competing forces take over: diffusion ($a$) flattens the sharp edges, and reaction ($k$) decays the concentration everywhere. 
+\paragraph{}
+This report focuses on Finite Difference Methods (FDM), the popular solvers used for approximating (\ref{eq:rhd}) with ICs (\ref{eq:ics}) in a computational environment, and in particular, the Forward-Time Central-Space (FTCS) Method. In this report, FTCS is the FDM benchmark used for comparisons, and its stencil (\ref{eq:ftcsstencil}) is derived directly from the Taylor Series Expansion. Some other intriguing methodologies also approximate a solution, and are discussed in greater detail later on in the survey. 
+
+\subsubsection*{FTCS: Benchmark FDM Stencil}
+\begin{equation}
+\label{eq:ftcsstencil}
+C_i^{n+1} = C_i^n + \Delta t \left[ a \frac{C_{i+1}^n - 2C_i^n + C_{i-1}^n}{(\Delta x)^2} - kC_i^n \right]
+\end{equation}
+
+\renewcommand*\contentsname{}
+\tableofcontents
+
+\paragraph{6} \textbf{Benchmark Implementation Comparison (Python, OpenMPI, CUDA)}

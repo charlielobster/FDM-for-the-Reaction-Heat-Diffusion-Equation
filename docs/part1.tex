@@ -1,0 +1,239 @@
+\section{Analytic Solution}
+\paragraph{}
+Consider the following mathematical concepts related to this problem, the Laplacian ($\nabla^2$) operator and the general Heat/Diffusion Equation:
+
+\subsubsection*{The Laplacian $\nabla^2$}
+\paragraph{}
+Generally, the Laplacian measures how a quantity diffuses or spreads out from a point, and is normally a 3-D spatial operator. In this case, that simplifies down to just the second derivative along x:
+\begin{equation}
+\label{eq:laplacian1d}
+\nabla^2 C = \frac{\partial^2 C}{\partial x^2}
+\end{equation}
+\paragraph{}
+Since ICs (\ref{eq:ics}) are symmetric, as is (\ref{eq:laplacian1d}), the solution must also be symmetric.
+
+\subsubsection*{Heat/Diffusion Equation}
+\paragraph{}
+(\ref{eq:rhd}) is a special case of the more general 1-D Heat/Diffusion Equation. 
+\begin{equation}
+\label{eq:hde}
+\frac{\partial u}{\partial t} = a \frac{\partial^2 u}{\partial x^2}
+\end{equation}
+\paragraph{}
+To find it, introduce a transformation to remove the $-kC$ term:
+\begin{equation}
+\label{eq:c1}
+C(x,t) = e^{-kt} u(x,t)
+\end{equation}
+\paragraph{}
+Differentiate the expression with respect to $t$ and $x$:
+\begin{equation*}
+\frac{\partial C}{\partial t} = -k e^{-kt} u + e^{-kt} \frac{\partial u}{\partial t}
+\end{equation*}
+\begin{equation*}
+\frac{\partial^2 C}{\partial x^2} = e^{-kt} \frac{\partial^2 u}{\partial x^2}
+\end{equation*}
+\paragraph{}
+Substitute those results back into (\ref{eq:rhd}):
+\begin{equation*}
+-k e^{-kt} u + e^{-kt} \frac{\partial u}{\partial t} = a e^{-kt} \frac{\partial^2 u}{\partial x^2} - k e^{-kt} u
+\end{equation*}
+\paragraph{}
+To complete the transformation to (\ref{eq:hde}), cancel the matching reaction terms and divide by $e^{-kt}$. Since $e^0 = 1$, the transformed initial conditions at $t=0$ remain unchanged:
+\begin{equation*}
+u(x,0) = \begin{cases} 1 & |x| < 1 \\ 0 & |x| > 1 \end{cases}
+\end{equation*}
+
+\subsubsection*{Separation of Variables}
+\paragraph{}
+When we use the separation of variables method on the Heat/Diffusion equation, we separate the time part from the space part.  That is, if we first assume $u(x,t) = X(x)T(t)$, then
+\begin{equation*}
+X(x)T'(t) = a X''(x)T(t) \implies \frac{T'}{aT} = \frac{X''}{X} = -\lambda^2
+\end{equation*}
+\paragraph{}
+Notice that, by convention, we chose $-\lambda^2$ to be negative. This yields two ordinary differential equations (ODEs), the time equation: 
+\begin{equation*}
+T' + a\lambda^2 T = 0 \implies T(t) = e^{-a\lambda^2 t}
+\end{equation*}
+and the space, or 1-D Helmholtz equation: 
+\begin{equation}
+\label{eq:hgs}
+X'' = -\lambda^2 X \implies X(x) = A\cos(\lambda x) + B\sin(\lambda x)
+\end{equation}
+\paragraph{}
+Note that $-\lambda^2$ has to be negative because otherwise our time function would blow up for $t \to \infty$. Therefore, the associated spatial function has to be oscillatory (sine, cosine or exponential $e^{\pm ikz}$), and the time function must be an exponential decay (hyperbolic sine, cosine, or $e^{-kz}$). However, if we had chosen $+\lambda^2$, we would invert our spatial solution to a combination of hyperbolic cosine and sine, and use exponential growth ($e^{+kt}$) for the time function. 
+
+\subsubsection*{Helmholtz Equation}
+\paragraph{}
+The 1-D Helmholtz equation is:
+\begin{equation}
+\label{eq:helmholtz1d}
+\frac{d^2 X}{dx^2} + \lambda^2 X = 0
+\end{equation}
+\paragraph{}
+The Helmholtz equation determines the spatial shapes or modes (sines and cosines) that the substance takes as it spreads. Because in this case the ICs are symmetric, the sine terms in (\ref{eq:hgs}) drop out ($B=0$). 
+
+\subsubsection*{Fourier Transform}
+\paragraph{}
+Since the domain is infinite ($-\infty < x < \infty$), $\lambda$ must be continuous, transforming the solution for $u(x,t)$ into a Fourier integral:
+\begin{equation}
+\label{eq:uxt1}
+u(x,t) = \int_{0}^{\infty} A(\lambda) \cos(\lambda x) e^{-a\lambda^2 t} d\lambda
+\end{equation}
+\paragraph{}
+Applying initial conditions at $t=0$, we find:
+\begin{equation*}
+u(x,0) = \int_{0}^{\infty} A(\lambda) \cos(\lambda x) d\lambda
+\end{equation*}
+\paragraph{}
+And evaluating the Fourier transform, $A(\lambda)$:
+\begin{equation}
+\label{eq:atransform}
+A(\lambda) = (2)\frac{1}{2\pi} \bigg[ 2\int_{0}^{\infty} u(x,0) \cos(\lambda x) dx \bigg] = \frac{2}{\pi} \int_{0}^{1} \cos(\lambda x) dx = ( \frac{2}{\pi} ) \left. \frac{\sin(\lambda x)}{\lambda} \right|_0^1 = \frac{2\sin(\lambda)}{\pi\lambda}
+\end{equation}
+\subsubsection*{Normalization Analysis}
+\paragraph{}
+Considering the results of (\ref{eq:atransform}), it makes sense that $A$ include sine, the orthogonal partner to cosine, which arises from the symmetry requirements, and that $A$ takes an argument produced by $\lambda x$ when $x = 1$. Note also that $\frac{\sin(\lambda)}{\lambda} \to 1$ as $\lambda \to 0$. Two factors of (2) appear in the Fourier transform due to the solution symmetry and doubling of half-space limits to positive x values.
+
+\subsubsection*{Trigonometric Decomposition}
+\paragraph{}
+Plug the results from (\ref{eq:atransform}) back into (\ref{eq:uxt1}):
+\begin{equation}
+\label{eq:uxt2}
+u(x,t) = \frac{2}{\pi} \int_{0}^{\infty} \frac{\sin(\lambda)}{\lambda} \cos(\lambda x) e^{-a\lambda^2 t} d\lambda
+\end{equation}
+\paragraph{}
+Decompose the trigonometric product using the product-to-sum identity:
+\begin{equation*}
+2 \sin(\lambda)\cos(\lambda x) = \sin\left[\lambda(1+x)\right] + \sin\left[\lambda(1-x)\right]
+\end{equation*}
+\paragraph{}
+Substituting that expression back into (\ref{eq:uxt2}) splits the integral into two:
+\begin{equation}
+\label{eq:uxt3}
+u(x,t) = \frac{1}{\pi} \int_{0}^{\infty} \left[ \frac{\sin\big(\lambda(1+x)\big)}{\lambda} + \frac{\sin\big(\lambda(1-x)\big)}{\lambda} \right] e^{-a\lambda^2 t} \, d\lambda
+\end{equation}
+
+\subsubsection*{Leibniz's Rule Trick}
+\paragraph{}
+With the time-dependent frequency modes established, and without loss of generality, let:
+\begin{equation}
+\label{eq:chidef}
+\chi = 1 \pm x
+\end{equation}
+\paragraph{}
+Here the + or - depends on which integral is chosen from the above sum in (\ref{eq:uxt3}). 
+\paragraph{}
+Let's define two functions $I(\chi)$ and $J(\chi)=I'(\chi)$:
+\begin{equation}
+\label{eq:idef}
+I(\chi) = \int_{0}^{\infty} \frac{\sin(\chi \lambda)}{\lambda} e^{-a \lambda^2 t} \, d\lambda
+\end{equation}
+\paragraph{}
+Using Leibniz's Rule, differentiating (\ref{eq:idef}) with respect to $\chi$ eliminates $\lambda$ from the denominator:
+\begin{equation*}
+J(\chi)=\frac{dI}{d\chi} = \frac{d}{d\chi} \left[ \int_{0}^{\infty} \frac{\sin(\chi\lambda)}{\lambda} e^{-a \lambda^2 t} \, d\lambda \right] = \int_{0}^{\infty} \frac{\partial}{\partial \chi} \left[ \frac{\sin(\chi\lambda)}{\lambda} \right] e^{-a \lambda^2 t} \, d\lambda = \int_{0}^{\infty} \cos(\chi\lambda) e^{-a \lambda^2 t} d\lambda
+\end{equation*}
+\paragraph{}
+Similarly, applying this rule once again recovers an integrable expression.
+\begin{equation*}
+\frac{dJ}{d\chi} = \int_{0}^{\infty} \frac{d}{d\chi} \big[\cos(\chi\lambda) \big] e^{-a \lambda^2 t} \, d\lambda = -\int_{0}^{\infty} \lambda \sin(\chi\lambda) e^{-a \lambda^2 t} d\lambda
+\end{equation*}
+
+\subsubsection*{Integration by Parts}
+\begin{equation*}
+\label{eq:ibp}
+\int u \, dv = uv - \int v \, du
+\end{equation*}
+\paragraph{}
+With substitutions $u = \sin(\chi\lambda)$ and $dv = -\lambda e^{-a \lambda^2 t} d\lambda$, we find: 
+\begin{equation*}
+\frac{dJ}{d\chi} = -\int_{0}^{\infty} \lambda \sin(\chi\lambda) e^{-a \lambda^2 t} d\lambda = \cancelto{0}{\left. \frac{1}{2at} \sin(\chi \lambda)e^{-a \lambda^2 t} \right|_0^{\infty}} - \int_{0}^{\infty} \frac{\chi}{2 a t} \cos( \chi \lambda) e^{-a \lambda^2 t} \, d\lambda = - \frac{\chi}{2at} J
+\end{equation*}
+\paragraph{}
+Rearranging the expressions:
+\begin{equation*}
+\frac{d J}{J} = - \frac{1}{2at} \chi \, d \chi
+\end{equation*}
+\paragraph{}
+Integrating both sides:
+\begin{equation*}
+\int \frac{d J}{J} = \text{ln}J = - \frac{1}{2at} \int \chi \, d \chi = -\frac{\chi^2}{4 a t} + C
+\end{equation*}
+\begin{equation*}
+J(\chi) = Ge^{-\frac{\chi^2}{4at}}
+\end{equation*}
+\paragraph{}    
+Where $G=e^C$. Now, $J(0)=Ge^0=G$, so
+\begin{equation}
+\label{eq:gi}
+G = J(0) = \int_{0}^{\infty} \cos(0) e^{-a \lambda^2 t} d\lambda = \int_{0}^{\infty} e^{-a \lambda^2 t} d\lambda
+\end{equation}
+
+\subsubsection*{Gaussian Integral}
+\paragraph{}
+Thus, we arrive at (\ref{eq:gi}), the famous Gaussian Integral. Start by squaring it. Note that the variables used inside the product of two integrals are always orthogonal to one another, and may therefore be transformed from the Cartesian to the cylindrical coordinate system.
+\begin{equation*}
+G^2=\int_0^{\infty} e^{-a\lambda_1^2t}\,d\lambda_1 \int_0^{\infty} e^{-a\lambda_2^2t}\,d\lambda_2 =\int_0^{\infty}  \int_0^{\infty} e^{-a(\lambda_1^2 + \lambda_2^2)t}\,d\lambda_1\,d\lambda_2 = \int_0^{\frac{\pi}{2}}\,d\phi \int_0^{\infty} r\,dr\,e^{-ar^2t}
+\end{equation*}
+\paragraph{}
+Noting the substitution $r^2 = \lambda_1^2 + \lambda_2^2$, and the limits $\lambda_1$, $\lambda_2$ from 0 to $\infty$ transform $\phi$ limits from 0 to $\frac{\pi}{2}$ (only the ++ quadrant of $\mathbb{R} \times \mathbb{R} $), and $r$ from 0 to $\infty$. 
+\paragraph{}
+Substitute $u=ar^2t\implies du=a2rt\,dr$:
+\begin{equation*}
+\int_0^{\frac{\pi}{2}}\,d\phi \int_0^{\infty} r\,dr\,e^{-ar^2t} = \frac{\pi}{2}\big(\frac{1}{2at}\big)\int_0^{\infty}e^{-u}\,du=\frac{\pi}{4at}(-1)\left.e^{-u}\right|_0^{\infty} \implies G=\sqrt{\frac{\pi}{4at}}
+\end{equation*}
+\begin{equation*}
+\frac{dI}{d\chi} = \sqrt{\frac{\pi}{4at}} e^{-\frac{\chi^2}{4 a t}}
+\end{equation*}
+\paragraph{}
+Now, we recover the original function $I(\chi)$ by integrating this, using a new dummy variable $\xi$ that ranges from $0$ to $\chi$:
+\begin{equation}
+\label{eq:ichi2}
+\sqrt{\frac{\pi}{4at}} \int_{0}^{\chi} {e^{-\frac{\xi^2}{4 a t}}} d\xi = I(\chi) - I(0)
+\end{equation}
+\paragraph{}
+From the definition of $I(\chi)$, it's clear that if $\chi=0$, $\sin(0) = 0$ will force the initial condition to zero:
+\begin{equation*}
+I(0) = \int_{0}^{\infty} \frac{\sin(0)}{\lambda} e^{-a \lambda^2 t} \, d\lambda = 0
+\end{equation*}
+\paragraph{}
+Thus (\ref{eq:ichi2}) reduces to:
+\begin{equation}
+\label{eq:ichi3}
+I(\chi) = \sqrt{\frac{\pi}{4at}} \int_{0}^{\chi} e^{-\frac{\xi^2}{4 a t}} \, d\xi
+\end{equation}
+
+\subsubsection*{Introducing erf}
+\paragraph{}
+This is the Gaussian Error Function erf:
+\begin{equation}
+\label{eq:erf}
+\text{erf}(x) = \frac{2}{\sqrt\pi}\int_{0}^{x} e^{-\eta^2} d\eta
+\end{equation}
+\paragraph{}
+To use erf, starting from (\ref{eq:ichi3}), introduce one more dummy variable, $\eta$, to clean up the exponent:
+\begin{equation*}
+\eta = \frac{\xi}{2\sqrt{a t}} \implies d\eta = \frac{d\xi}{2\sqrt{a t}} \implies d\xi = 2\sqrt{a t} \ d\eta
+\end{equation*}
+\paragraph{}
+So when $\xi = \chi$, $\eta = \frac{\chi}{2\sqrt{at}}$. Substituting these variables back into the expression yields:
+\begin{equation*}
+I(\chi) = \sqrt{\pi} \int_{0}^{\frac{\chi}{2\sqrt{at}}} e^{-\eta^2} d\eta
+\end{equation*}
+\begin{equation*}
+I(\chi) = \frac{\pi}{2} \left( \frac{2}{\sqrt{\pi}} \int_{0}^{\frac{\chi}{2\sqrt{at}}} e^{-\eta^2} d\eta \right) = \frac{\pi}{2} \text{erf}\left(\frac{\chi}{2\sqrt{a t}}\right)
+\end{equation*}
+\subsubsection*{Final Analytic Solution}
+\paragraph{}
+Substituting (\ref{eq:chidef}) back in for $\chi$ and into (\ref{eq:uxt3}), we find:
+\begin{equation}
+\label{eq:uxt4}
+u(x,t) = \frac{1}{\pi} \frac{\pi}{2} \left[ \text{erf}\left(\frac{1+x}{2\sqrt{at}}\right) + \text{erf}\left(\frac{1-x}{2\sqrt{at}}\right) \right]
+\end{equation}
+\paragraph{}
+Reversing the initial transformation back into (\ref{eq:c1}) to arrive at the final analytical solution:
+\begin{equation}
+\label{eq:fas}
+\mathbf{C(x,t) = \frac{1}{2} e^{-kt} \left[ \text{erf}\left(\frac{1+x}{2\sqrt{at}}\right) + \text{erf}\left(\frac{1-x}{2\sqrt{at}}\right) \right]}
+\end{equation}

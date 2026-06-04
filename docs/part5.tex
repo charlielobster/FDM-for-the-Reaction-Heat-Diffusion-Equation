@@ -1,0 +1,131 @@
+\section{FDM Performance Comparison with Python}
+
+\lstset{
+    backgroundcolor=\color{gray!6},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    keywordstyle=\color{blue},
+    commentstyle=\color{magenta},
+    stringstyle=\color{magenta},
+    showstringspaces=false
+}
+
+\captionsetup[lstlisting]{font=large} 
+
+\begin{lstlisting}[language=Python, title={fdsolvers.py}]
+import numpy as np
+from scipy.special import erf
+from scipy.linalg import solve_banded
+
+# boiler-plate
+def analytical_solution(x, t, a, k):
+    """
+        Analytic Solution to Reaction Diffusion/Heat Equation
+        with Top-Hat Inital Conditions at |x| < 1
+    """
+    if np.isclose(t, 0.0): # why am i doing this?
+        C = np.where(np.abs(x) < 1.0, 1.0, 0.0)
+        C[np.isclose(np.abs(x), 1.0)] = 0.5
+        return C        
+    denom = 2.0 * np.sqrt(a * t)
+    erf_plus = erf((1.0 + x) / denom)
+    erf_minus = erf((1.0 - x) / denom)    
+    C = 0.5 * np.exp(-k * t) * (erf_plus + erf_minus)
+    return C
+    
+def ftcs(x, dx, dt, t_final, a, k):
+    """
+        Forward-Time Central-Space (FTCS) Method
+    """
+    nx = len(x)
+    nt = int(round(t_final / dt))
+    C = np.where(np.abs(x) < 1.0, 1.0, 0.0)
+    C[np.isclose(np.abs(x), 1.0)] = 0.5
+    r = a * dt / (dx**2)    
+    for n in range(nt):
+        C_next = np.copy(C)
+        C_next[1:-1] = C[1:-1] + 
+            r * (C[2:] - 2*C[1:-1] + C[:-2]) - k * dt * C[1:-1]
+        C_next[0] = 0.0
+        C_next[-1] = 0.0        
+        C = C_next
+    return C
+
+def rk4_derivative(C, r_factor, k_dt):
+    """
+        Runge-Kutta 4 Spatial Derivative
+    """
+    dC_dt = np.zeros_like(C)
+    dC_dt[1:-1] = r_factor * (C[2:] - 
+        2.0 * C[1:-1] + C[:-2]) - k_dt * C[1:-1]
+    dC_dt[0] = 0.0
+    dC_dt[-1] = 0.0
+    return dC_dt
+
+def rk4(x, dx, dt, t_final, a, k):
+    """
+        Runge-Kutta 4 Main Algorithm
+    """
+    nx = len(x)
+    nt = int(round(t_final / dt))
+    C = np.where(np.abs(x) < 1.0, 1.0, 0.0)
+    C[np.isclose(np.abs(x), 1.0)] = 0.5
+    r_factor = a * dt / (dx**2)
+    k_dt = k * dt
+    for _ in range(nt):
+        k1 = rk4_derivative(C, r_factor, k_dt)
+        k2 = rk4_derivative(C + 0.5 * k1, r_factor, k_dt)
+        k3 = rk4_derivative(C + 0.5 * k2, r_factor, k_dt)
+        k4 = rk4_derivative(C + k3, r_factor, k_dt)
+        C += (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0
+    return C
+
+def dufort_frankel(x, dx, dt, t_final, a, k):
+    nx = len(x)
+    nt = int(round(t_final / dt))
+    C_past = np.where(np.abs(x) < 1.0, 1.0, 0.0)
+    C_curr = np.copy(C_past)
+    r = a * dt / (dx**2)
+    C_curr[1:-1] = C_past[1:-1] + r * (C_past[2:] - 
+        2*C_past[1:-1] + C_past[:-2]) - k * dt * C_past[1:-1]
+    denom = 1.0 + 2.0 * r + k * dt
+    alpha = (1.0 - 2.0 * r - k * dt) / denom
+    beta = (2.0 * r) / denom
+    for n in range(1, nt):
+        C_next = np.zeros(nx)
+        C_next[1:-1] = (alpha * C_past[1:-1] + 
+                        beta * (C_curr[2:] + C_curr[:-2]))
+        C_next[0] = 0.0
+        C_next[-1] = 0.0
+        C_past = np.copy(C_curr)
+        C_curr = C_next        
+    return C_curr
+
+def btcs(x, dx, dt, t_final, a, k):
+    """
+        (Implicit) Backward-Time Central-Space Method
+    """
+    nx = len(x)
+    nt = int(round(t_final / dt))    
+    C = np.where(np.abs(x) < 1.0, 1.0, 0.0)
+    C[np.isclose(np.abs(x), 1.0)] = 0.5
+    r = a * dt / (dx**2)    
+    diag_main = (1.0 + 2.0 * r + k * dt) * np.ones(nx - 2)
+    diag_sub  = -r * np.ones(nx - 2)
+    diag_super = -r * np.ones(nx - 2)    
+    A_banded = np.zeros((3, nx - 2))
+    A_banded[0, 1:] = diag_super[:-1]
+    A_banded[1, :]  = diag_main
+    A_banded[2, :-1] = diag_sub[1:]    
+    for n in range(nt):
+        B = np.copy(C[1:-1])        
+        B[0] += r * 0.0
+        B[-1] += r * 0.0        
+        C[1:-1] = solve_banded((1, 1), A_banded, B)        
+        C[0] = 0.0
+        C[-1] = 0.0        
+    return C
+
+\end{lstlisting}
+
+\href{https://github.com/charlielobster/EFDMs-for-the-Reaction-Heat-Diffusion-Equation/}{Report Github Repository Code-base}

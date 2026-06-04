@@ -1,0 +1,152 @@
+\section{A General Survey of Solvers}
+\paragraph{}
+Besides FDMs, a wide variety of other solvers also approximate the solution to (\ref{eq:rhd}) with ICs (\ref{eq:ics}) in a discrete, computational space.
+
+\subsection*{Continuum Space Discretizations\\ \normalsize Crank-Nicolson Method (Semi-Implicit)}
+\paragraph{}
+Averaged Stencil Formula: Let $\mu = \frac{a \Delta t}{(\Delta x)^2}$. Trapeze-style blending creates the array:
+\begin{equation*}
+-\frac{\mu}{2} C_{i-1}^{n+1} + \left(1 + \mu + \frac{k\Delta t}{2}\right) C_i^{n+1} - \frac{\mu}{2} C_{i+1}^{n+1} = \frac{\mu}{2} C_{i-1}^n + \left(1 - \mu - \frac{k\Delta t}{2}\right) C_i^n + \frac{\mu}{2} C_{i+1}^n
+\end{equation*}
+\paragraph{}
+Unconditionally stable ($\mathcal{O}(\Delta t^2, \Delta x^2)$).
+
+\subsection*{Finite Volume Method (FVM) \\ \normalsize Central Differencing FVM}
+\paragraph{}
+FVMs track mass flux balance through bounded cells rather than points. They integrate mass across control volumes bounded by faces at $i-1/2$ and $i+1/2$. They simplify identically to FDM for flat grids, but structurally enforce exact conservation of mass.
+\begin{equation*}
+\big( \frac{C_i^{n+1} - C_i^n}{\Delta t} \big) \Delta x = \left[ a \frac{C_{i+1}^n - C_i^n}{\Delta x} \right] - \left[ a \frac{C_i^n - C_{i-1}^n}{\Delta x} \right] - k C_i^n \Delta x
+\end{equation*}
+
+\subsection*{Finite Element Method (FEM) \\ \normalsize Galerkin Linear Finite Element Method}
+\paragraph{}
+FEMs are the industry standard for handling complex, curved, or irregular physical boundaries. They project the solution onto continuous piecewise tent functions. They express the domain using tent shape functions $\phi_i(x)$. The global assembly uses a tri-diagonal Mass Matrix $M$ and Stiffness Matrix $K$:
+\begin{equation*}
+M = \frac{\Delta x}{6} \begin{bmatrix} 4 & 1 & 0 \\ 1 & 4 & 1 \\ 0 & 1 & 4 \end{bmatrix}, \quad K = \frac{a}{\Delta x} \begin{bmatrix} 2 & -1 & 0 \\ -1 & 2 & -1 \\ 0 & -1 & 2 \end{bmatrix}
+\end{equation*}
+Resulting Semi-Discrete Ordinary System:
+\begin{equation*}
+M \frac{dC}{dt} + (K + kM)C = 0
+\end{equation*}
+
+\subsection*{Spectral Methods\\ \normalsize Spectral Element Method (SEM)}
+\paragraph{}
+SEM combines the geometric flexibility of FEM with the exponential accuracy of spectral methods. The domain is divided into a mesh of localized elements where the solution is approximated using high-order polynomials (typically 7th-Order Legendre polynomials). Spatial derivatives are computed through localized matrix-matrix multiplications. 
+\paragraph{}
+While SEM provides exceptional spatial accuracy for smooth diffusive profiles,  temporal stability is impacted. For (\ref{eq:hde}), high-order spatial discretization amplifies the eigenvalues.  Production solvers utilizing SEM for reaction-diffusion systems typically rely on implicit or semi-implicit time-stepping schemes to circumvent the stability bottlenecks.
+
+\subsubsection*{Fourier Pseudo-Spectral Method}
+\paragraph{}
+Spectral methods transform spatial values into frequency components via Forward Discrete Fourier Transforms ($\mathcal{F}$).
+\begin{equation*}
+\hat{C}_m(t) = \mathcal{F}\{C(x,t)\} = \sum_{i=1}^{N_x} C_i(t) e^{-I m x_i}
+\end{equation*}
+The derivative operators are swapped entirely for multiplication scaling arrays containing wave numbers $\kappa_m$:
+\begin{equation*}
+\frac{d\hat{C}_m}{dt} = \left( -a \kappa_m^2 - k \right) \hat{C}_m \implies \hat{C}_m^{n+1} = \hat{C}_m^n e^{(-a \kappa_m^2 - k)\Delta t}
+\end{equation*}
+\paragraph{}
+Values map back using the Inverse Fourier Transform: $C_i^{n+1} = \mathcal{F}^{-1}\{\hat{C}_m^{n+1}\}$.
+
+\subsection*{Probabilistic/Kinetic Frameworks\\ \normalsize Lattice Boltzmann Method (LBM)}
+\paragraph{}
+Unlike continuum methods that discretize (\ref{eq:hde}) directly, LBM tracks the evolution of fictitious particle distribution functions $f_\alpha(x, t)$ along discrete lattice velocity directions $\mathbf{e}_\alpha$. The concentration field $C(x,t)$ emerges as a local hydrodynamic moment: $C = \sum_\alpha f_\alpha$. The method is completely local in its streaming step, making it exceptionally fast for parallel computing (GPUs). 
+\paragraph{}
+The governing Boltzmann equation utilizes a consecutive "collide and stream" sequence. Using the standard BGK (Bhatnagar-Gross-Krook) single-relaxation-time collision operator, the update rule is:
+\begin{equation*}
+f_\alpha(x + \mathbf{e}_\alpha \Delta t, t + \Delta t) = f_\alpha(x, t) - \frac{1}{\tau} \left[ f_\alpha(x, t) - f_\alpha^{eq}(x, t) \right] + \Delta t \, w_\alpha R
+\end{equation*}
+Here, $\tau$ is the dimensionless relaxation time linked to the diffusion coefficient ($a = c_s^2(\tau - 0.5)\Delta t$), $f_\alpha^{eq}$ is the local equilibrium distribution function, $w_\alpha$ is the lattice weighting factor, and $R = -kC$ handles the linear sink reaction term inside the collision step. Through a multiscale expansion,  (\ref{eq:rhd}) is recovered exactly with second-order spatial and temporal accuracy ($\mathcal{O}(\Delta t^2, \Delta x^2)$).
+
+\subsubsection*{Stochastic Particle Tracking (Random Walk / Monte Carlo)}
+\paragraph{}
+Instead of treating the concentration as a continuous field, this models a discrete population of individual particles undergoing Brownian motion (representing diffusion) alongside stochastic death/birth rules (representing reaction).
+
+\subsection*{Alternative Spatial Discretizations \\ \normalsize Discontinuous Galerkin (DG) Method} 
+\paragraph{}
+A hybrid approach inheriting the high-order accuracy of FEMs and the strict, localized physical mass conservation of FVMs.
+
+\subsubsection*{Meshless Radial Basis Functions (RBF)} 
+\paragraph{}
+These skip traditional coordinate grids entirely, using scattered node points and radial basis functions to calculate derivatives, making them excellent for highly irregular geometries.
+
+\subsection*{Machine Learning Approaches}
+\subsubsection*{Physics-Informed Neural Networks (PINN)}
+\paragraph{}
+A mesh-free technique where a deep neural network approximates the concentration function $C(x,t)$. The residual of (\ref{eq:rhd}) is directly embedded into the network's loss function to guide optimization.
+
+\subsubsection*{Fourier Neural Operators (FNO)}
+\paragraph{}
+FNO learns the underlying macroscopic operator mapping between infinite-dimensional function spaces (e.g., mapping the initial condition $C(x,0)$ directly to the solution field $C(x,t)$), bypassing traditional spatial grids by performing non-local convolutions in the frequency domain using the Fast Fourier Transform ($\mathcal{F}$).
+
+\begin{equation*}
+v^{(l+1)}(x) = \sigma \left( W v^{(l)}(x) + \mathcal{F}^{-1} \left\{ R \cdot \mathcal{F}\{v^{(l)}(x)\} \right\} \right)
+\end{equation*}
+\paragraph{}
+Here, $v^{(l)}$ represents the neural network's hidden representation at layer $l$, $W$ is a linear pixel-wise transformation, $R$ is a matrix of learnable complex weights that parameterize the kernel operator in the frequency domain, and $\sigma$ is a non-linear activation function. 
+\paragraph{}
+For reaction-diffusion equations, FNO offers zero-shot super-resolution, allowing for training on coarse, low-resolution simulations and evaluated on arbitrarily fine grids with zero loss in accuracy. FNO is mesh-independent, and once trained, evaluates much faster than traditional numerical solvers. However, FNO lacks strict physical enforcement guarantees unless coupled with a physics-informed loss term.
+
+\subsection*{Advanced Techniques\\ \normalsize Total Variation Diminishing (TVD) and Flux Limiters}
+\paragraph{}
+Standard higher-order central space differences suffer from dispersion when encountering the discontinuous edges of (\ref{eq:ics}). This triggers oscillations (the Gibbs phenomenon) and artificial negative concentrations. High-Resolution Schemes introduce non-linear flux limiters $\phi(r)$ to switch between low-order upwind and high-order central approximations, based on local gradients. The cell interface flux is modified as:
+\begin{equation*}
+F_{i+1/2} = F_{i+1/2}^{\text{Low}} + \phi(r_i) \left( F_{i+1/2}^{\text{High}} - F_{i+1/2}^{\text{Low}} \right)
+\end{equation*}
+
+Here, $r_i$ represents the ratio of consecutive concentration gradients. By enforcing a Total Variation Diminishing (TVD) constraint, limiters ensure that the solver maintains non-oscillatory profiles at $|x|=1$ without spreading or generating artificial extrema.
+
+\subsubsection*{Adaptive Mesh Refinement (AMR)}
+
+The ICs (\ref{eq:ics}) feature high-gradient fronts at $x = -1$ and $x = 1$, while the remainder of the spatial domain stays entirely flat. Utilizing a uniform grid across the entire domain is inefficient. AMR dynamically creates localized, fine-grained sub-grids around these fronts while maintaining a coarse mesh in smooth regions. The refinement criteria rely on a local truncation error estimate or the gradient of the concentration:
+\begin{equation*}
+\chi_i = \left| \frac{\partial^2 C}{\partial x^2} \right| > \epsilon_{\text{threshold}}
+\end{equation*}
+
+When $\chi_i$ exceeds the user-defined threshold, the cell is automatically subdivided. As the diffusion front smooths out and propagates over time, the sub-grids dynamically transform, reducing overhead.
+
+\subsubsection*{Operator Splitting Methods: Godunov Time-Splitting}
+\paragraph{}
+Godunov Time-Splitting (Explicit) breaks each time step into two sequential, purely explicit sub-steps. First, a pure diffusion equation over a half-step using explicit central differences.  Then, the results are used to solve a pure reaction/decay equation over the next half-step. It decouples the competing physical phenomena, which can make debugging individual terms much simpler, but also introduces a splitting error that scales with the time step. 
+
+\subsubsection*{Advanced Time Integrators: Exponential Time Differencing (ETD) / Integration Factor (IF)}
+\paragraph{}
+These methods evaluate the linear diffusion term exactly using matrix exponential, lifting the harsh diffusion stability barrier while treating the reaction term explicitly or semi-implicitly.
+
+\newgeometry{margin=0.55in}
+
+\begin{landscape}
+\begin{table}
+\centering
+\captionsetup{font=large}
+\caption*{\textbf{Comparative Matrix of Solvers of (\ref{eq:rhd}) with ICs (\ref{eq:ics})}}
+\label{tab:solvers_summary}
+
+\begin{tabular}{|>{\raggedright\arraybackslash}p{3.5cm} |>{\raggedright\arraybackslash}p{4.5cm} |>{\raggedright\arraybackslash}p{3.0cm} |>{\raggedright\arraybackslash}p{5.5cm} |>{\raggedright\arraybackslash}p{6.25cm}|} \toprule
+\textbf{Category} & \textbf{Method} & \textbf{Accuracy \& Stability} & \textbf{Handling of Sharp Discontinuities ($|x|=1$)} & \textbf{Primary Engineering Trade-off} \\ \toprule    
+\textbf{Continuum} & Crank-Nicolson & $\mathcal{O}(\Delta t^2, \Delta x^2)$ / Unconditional & Severe oscillations (Gibbs phenomenon) & Balanced baseline but requires implicit global matrix solves. \\ \cline{2-5}
+& Finite Volume Method (FVM) & $\mathcal{O}(\Delta t, \Delta x^2)$ / Explicit Limit & Preserves local mass; smears sharp edges & Exact physical conservation vs. first-order time step limit. \\ \cline{2-5}
+& Galerkin Linear Finite Element Method (FEM) & $\mathcal{O}(\Delta t, \Delta x^2)$ / Scheme Dependent & Triggers localized node-to-node oscillations & Geometric boundary flexibility vs. high spatial stiffness. \\ \toprule
+
+\textbf{Spectral Methods} & Spectral Element Method (SEM) & $\mathcal{O}(\Delta t^p, \Delta x^N)$ / Stiff Explicit & Amplifies high-frequency spatial noise at edges & Exponential smooth accuracy vs. severe eigenvalue restriction. \\ \cline{2-5}
+& Fourier Pseudo-Spectral & $\mathcal{O}(\Delta t, e^{-N})$ / Unconditional & Global ringing; spreads error across entire domain & Good for smooth profiles; unsuited for shocks. \\ \toprule
+
+\textbf{Probabilistic / Kinetic Frameworks} & Lattice Boltzmann Method (LBM) & $\mathcal{O}(\Delta t^2, \Delta x^2)$ / Local Stability & Resolves fronts smoothly without statistical noise & Fast GPU parallelization vs. rigid lattice geometry. \\ \cline{2-5}
+& Stochastic Tracking & $\mathcal{O}(\Delta t^{1/2})$ / Mesh-Free & Preserves sharp boundaries naturally; zero wiggles & High mesh-free flexibility vs. statistical noise overhead. \\ \toprule
+
+\textbf{Alternative Spatial Discretizations} & Discontinuous Galerkin & $\mathcal{O}(\Delta t^p, \Delta x^N)$ / Explicit Limit & Captures interface fluxes cleanly; localized wiggles & High-order sub-element accuracy vs. degree-of-freedom cost. \\ \cline{2-5}
+& Meshless Radial Basis Functions (RBF) & Variable / Node Dependent & Sensitive to matrix ill-conditioning near steps & Skips grid-generation entirely vs. dense, expensive matrix inversion. \\ \toprule
+
+\textbf{Machine Learning Approaches} & Physics Informed Neural Network (PINN) & Mesh-Free / N/A & Struggles to locate and fit sharp localized steps & Eliminates spatial meshing vs. unpredictable optimization convergence. \\ \cline{2-5}
+& Fourier Neural Operator (FNO) & Operator Level / Infinite-Dim & Evaluates sharp fronts with zero-shot resolution & Near-instant future inference vs. massive data training requirements. \\ \toprule
+
+\textbf{Advanced Techniques} & Godunov Splitting & $\mathcal{O}(\Delta t)$ Temporal / Split Limit & Decouples diffusion wiggles from reaction step & Simplifies complex multi-physics vs. permanent splitting error. \\ \cline{2-5}
+& Exponential Integrators & Higher-Order / Unconditional & Captures diffusion smoothly; reaction dependent & Eliminates stiff linear time limits vs. matrix exponential cost. \\ \cline{2-5}
+& AMR + TVD / Flux Limiters & Adaptive / Non-Linear & Dynamically suppresses all wiggles; sharp step tracks & Perfect front tracking vs. complex data structure/interface logic. \\ \bottomrule
+
+\end{tabular}    
+\end{table}
+\end{landscape}
+
+\clearpage
+\restoregeometry
