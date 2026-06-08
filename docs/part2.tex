@@ -92,3 +92,40 @@ C_i^{n+1} = C_i^n + \Delta t \left[ a \frac{C_{i+1}^n - 2C_i^n + C_{i-1}^n}{(\De
 \subsection*{Truncation Error}
 \paragraph{}
 The global truncation error for this numerical scheme is quantified as $\mathcal{O}(\Delta t) + \mathcal{O}((\Delta x)^2)$.
+
+\subsection*{Von Neumann Stability Analysis}
+
+We substitute a single Fourier mode $C_i^n = \xi^n e^{j \beta i \Delta x}$ into the explicit reaction-diffusion stencil:
+\begin{equation}
+C_i^{n+1} = C_i^n + \Delta t \left[ a \frac{C_{i+1}^n - 2C_i^n + C_{i-1}^n}{(\Delta x)^2} - kC_i^n \right]
+\end{equation}
+
+Dividing both sides by $\xi^n e^{j \beta i \Delta x}$ isolates the amplification factor $\xi$:
+\begin{equation}
+\xi = 1 + \Delta t \left[ a \frac{e^{j \beta \Delta x} - 2 + e^{-j \beta \Delta x}}{(\Delta x)^2} - k \right]
+\end{equation}
+
+Applying the Euler identity $e^{j \theta} + e^{-j \theta} = 2 \cos(\theta)$ and the trigonometric identity $2\cos(\theta) - 2 = -4 \sin^2(\theta/2)$, the relation reduces to:
+\begin{equation}
+\xi = 1 - \frac{4a \Delta t}{(\Delta x)^2} \sin^2\left(\frac{\beta \Delta x}{2}\right) - k \Delta t
+\end{equation}
+
+For stability, the system requires $|\xi| \le 1$. The bounding lower constraint ($\xi \ge -1$) yields:
+\begin{equation}
+-1 \le 1 - \frac{4a \Delta t}{(\Delta x)^2} \sin^2\left(\frac{\beta \Delta x}{2}\right) - k \Delta t
+\end{equation}
+
+Rearranging terms gives:
+\begin{equation}
+\frac{4a \Delta t}{(\Delta x)^2} \sin^2\left(\frac{\beta \Delta x}{2}\right) + k \Delta t \le 2
+\end{equation}
+
+The worst-case scenario occurs at the highest frequency where $\sin^2(\beta \Delta x / 2) = 1$. Evaluating this limit and dividing the entire inequality by 2 yields the true stability condition:
+\begin{equation}
+\frac{2a \Delta t}{(\Delta x)^2} + \frac{k \Delta t}{2} \le 1
+\end{equation}
+
+Factoring out the time step isolates the physical rates in their correct dimensional form:
+\begin{equation}
+\left( \frac{2a}{(\Delta x)^2} + \frac{k}{2} \right) \Delta t \le 1
+\end{equation}

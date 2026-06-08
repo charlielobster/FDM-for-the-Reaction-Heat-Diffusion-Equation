@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from analytic_solution import analytical_solution
-from fd_solvers import ftcs, rk4, dufort_frankel, btcs
+from fd_solvers import solver_state, solver_assessment, ftcs_solver, dufort_frankel_solver, rk4_solver, btcs_solver
 
 # Save results to CSV
 def export_to_csv(x, c_exact, c_ftcs, c_dufort, c_rk4, c_btcs, t_final):
@@ -27,23 +26,17 @@ def export_to_csv(x, c_exact, c_ftcs, c_dufort, c_rk4, c_btcs, t_final):
     print(f"Data successfully checkpointed to '{csv_filename}'.")
 
 # This function generates a high-quality PNG comparing all solvers at the final time step.
-def make_png():
-
-    # Define grid parameters for a stable run 
-    dx = 0.05
-    dt = 0.0001
-    t_final = 10.0
-    a = 1.0
-    k = 0
-
-    x = np.arange(-10.0, 10.0 + dx, dx)
-
-    # Gather Data from All Solvers
-    c_exact  = np.array([analytical_solution(xi, t_final, a, k) for xi in x])
-    c_ftcs   = ftcs(x, dx, dt, t_final, a, k)
-    c_dufort = dufort_frankel(x, dx, dt, t_final, a, k)
-    c_rk4    = rk4(x, dx, dt, t_final, a, k)
-    c_btcs   = btcs(x, dx, dt, t_final, a, k)
+def group_graph_snapshot(state, c_exact, c_ftcs, c_dufort, c_rk4, c_btcs, x):
+    """
+        Generates a PNG comparing all solvers at the final time step.
+    """
+    # 2. Define the textbox style properties
+    box_properties = dict(
+        boxstyle='round,pad=0.5',   # Shapes: 'square', 'round', etc.
+        facecolor='wheat',          # Background color
+        edgecolor='darkgoldenrod',  # Border color
+        alpha=0.85                  # Transparency (0 = clear, 1 = opaque)
+    )
 
     # Generate and Save the Plot
     plt.figure(figsize=(10, 6), dpi=300) 
@@ -56,110 +49,71 @@ def make_png():
     plt.plot(x, c_rk4, 'g^--', markersize=4, label='MOL / RK4 (Explicit)')
     plt.plot(x, c_btcs, 'm*--', markersize=4, label='BTCS (Implicit)')
 
-    plt.title(f'Concentration Profile Comparison at $t = {t_final}$', fontsize=14, fontweight='bold')
+    plt.title(f'Concentration Profile Comparison', fontsize=14, fontweight='bold')
     plt.xlabel('Spatial Coordinate ($x$)', fontsize=12)
     plt.ylabel('Concentration ($C$)', fontsize=12)
     plt.xlim([-4.0, 4.0]) # Zoom in on the active diffusion region
-    plt.ylim([-0.1, 1.1])
+    plt.ylim([-0.1, 1.5])
     plt.grid(True, linestyle=':', alpha=0.6)
     plt.legend(loc='upper right', fontsize=10)
 
-    output_filename = 'data\\solver_comparison_profile.png'
-    plt.savefig(output_filename, bbox_inches='tight')
+    # 3. Define the textbox string layout (supports multiline and LaTeX)
+    text_content = f"dx: {state.dx}\ndt: {state.dt}\na: {state.a}\nk: {state.k}\nt_final: {state.t_final}"
+
+    # 4. Add the textbox overlay to the upper-left corner
+    plt.text(
+        -0.5, 1.4,                 # X, Y coordinates (relative to axes)
+        text_content, 
+        fontsize=11, 
+        verticalalignment='top',    # Anchors the top of the box to Y=0.95
+        horizontalalignment='left', # Anchors the left of the box to X=0.05
+        bbox=box_properties         # Applies the text box styling
+    )
+
+    filename = f"data\\assessment_dx_{state.dx}_dt_{state.dt}_a_{state.a}_k_{state.k}_tfinal_{state.t_final}.png"
+
+    plt.savefig(filename, bbox_inches='tight')
     plt.close()
 
-    print(f"Success! Graph generated and saved as '{output_filename}' in your directory.")
+    print(f"Graph generated and saved as '{filename}'.")
 
 
-def run_project_simulation(dx, dt, t_final=1.0, a=1.0, k=0):
+def run_group_assessment(dx, dt, a, k, t_final, x_range):
     """
     Orchestrates the entire comparison suite for a given grid pairing.
     Calculates spatial domain, runs solvers, and computes L2 error metrics.
-    """
-
-    # Define a wide spatial domain to simulate "infinity" boundaries safely
-    x_min, x_max = -10.0, 10.0
-    x = np.arange(x_min, x_max + dx, dx)
+    """    
+    state = solver_state(dx=dx, dt=dt, a=a, k=k, t_final=t_final, x_range=x_range)
+    solvers = [ftcs_solver(state), dufort_frankel_solver(state), rk4_solver(state), btcs_solver(state)]
+    for solver in solvers:
+        solver.run_with_metrics()
+        print(f"{solver.name} - L2 Error: {solver.l2_error:.6e}")
+        print(f"{solver.name} - Elapsed Time: {solver.elapsed_time:.4f} seconds")
     
-    # 1. Compute baseline exact analytical profile
-    c_exact = np.array([analytical_solution(xi, t_final, a, k) for xi in x])
-    
-    # --- FTCS ---
-    c_ftcs = ftcs(x, dx, dt, t_final, a, k)
-    ftcs_error = np.sqrt(np.mean((c_ftcs - c_exact)**2)) # RMS / L2 norm proxy
-        
-    # --- DuFort-Frankel ---
-    c_dufort = dufort_frankel(x, dx, dt, t_final, a, k)
-    dufort_error = np.sqrt(np.mean((c_dufort - c_exact)**2))
-    
-    # --- RK4 Method of Lines ---
-    c_rk4 = rk4(x, dx, dt, t_final, a, k)
-    rk4_error = np.sqrt(np.mean((c_rk4 - c_exact)**2))
-
-    # --- BTCS ---    
-    c_btcs = btcs(x, dx, dt, t_final, a, k)
-    btcs_error = np.sqrt(np.mean((c_btcs - c_exact)**2))
-
-  #  export_to_csv(x, c_exact, c_ftcs, c_dufort, c_rk4, c_btcs, t_final)
-
-    return ftcs_error, dufort_error, rk4_error, btcs_error
+    group_graph_snapshot(state, state.C_exact, solvers[0].C, solvers[1].C, solvers[2].C, solvers[3].C, state.x)
+    return solvers
 
 if __name__ == "__main__":
-    
-    # Test Run A (Prompt Specs)
-    err_ftcs_A, err_df_A, err_rk4_A, err_btcs_A = run_project_simulation(dx=0.2, dt=0.1)
-    
-    # Test Run B (Prompt Specs)
-    err_ftcs_B, err_df_B, err_rk4_B, err_btcs_B = run_project_simulation(dx=0.1, dt=0.05)
 
-    # Test Run C (Prompt Specs)
-    err_ftcs_C, err_df_C, err_rk4_C, err_btcs_C = run_project_simulation(dx=0.05, dt=0.0005)
-     
-    # Test Run D (Prompt Specs)
-    err_ftcs_D, err_df_D, err_rk4_D, err_btcs_D = run_project_simulation(dx=0.05, dt=0.0001)
+    a_s = [0.1, 1.0, 1.01]
+    k_s = [0.0, 0.1, 0.25, 0.5]
+    dx_s = [0.2, 0.2, 0.2, 0.2, 0.1, 0.1, 0.1, 0.1]
+    dt_s = [0.1, 0.05, 0.025, 0.021, 0.05, 0.025, 0.0125, 0.0051]
+    t_finals = [1.0, 2.5, 5.0, 10.0]
+    x_range = 10.0
 
-    # Test Run E (Prompt Specs)
-    err_ftcs_E, err_df_E, err_rk4_E, err_btcs_E = run_project_simulation(dx=0.05, dt=0.00001)
+    for i in [0,1,2,3,4,5,6,7]:         
+        print(f"Running Simulation with dx = {dx_s[i]}, dt = {dt_s[i]}, a = 1.0, k = 0.1, t_final = 1.0, x_range = {x_range}")
+        solvers = run_group_assessment(dx=dx_s[i], dt=dt_s[i], a=1.0, k=0.1, t_final=1.0, x_range=x_range)
+        print(f"Errors - FTCS: {solvers[0].l2_error:.6e}, DuFort-Frankel: {solvers[1].l2_error:.6e}, RK4: {solvers[2].l2_error:.6e}, BTCS: {solvers[3].l2_error:.6e}\n")   
 
-    # Test Run F (Prompt Specs)
-    err_ftcs_F, err_df_F, err_rk4_F, err_btcs_F = run_project_simulation(dx=0.1, dt=0.005)
+    dx = 0.1
+    dt = 0.005
 
-    # Formatting outputs for easy inspection
-    print(f"[RUN A] Delta X = 0.2, Delta T = 0.1  (Courant r = 2.5)")
-    print(f"FTCS Error:           {err_ftcs_A}")
-    print(f"DuFort-Frankel Error: {err_df_A}")
-    print(f"MOL / RK4 Error:      {err_rk4_A}")
-    print(f"BTCS Error:           {err_btcs_A}")
-    
-    print(f"[RUN B] Delta X = 0.1, Delta T = 0.05 (Courant r = 5.0)")
-    print(f"FTCS Error:           {err_ftcs_B}")
-    print(f"DuFort-Frankel Error: {err_df_B}")
-    print(f"MOL / RK4 Error:      {err_rk4_B}")
-    print(f"BTCS Error:           {err_btcs_B}")
+    for a in a_s:
+        for k in k_s:
+            for t_final in t_finals:
+                print(f"Running Simulation with dx = {dx}, dt = {dt}, a = {a}, k = {k}, t_final = {t_final}, x_range = {x_range}")
+                solvers = run_group_assessment(dx=dx, dt=dt, a=a, k=k, t_final=t_final, x_range=x_range)
+                print(f"Errors - FTCS: {solvers[0].l2_error:.6e}, DuFort-Frankel: {solvers[1].l2_error:.6e}, RK4: {solvers[2].l2_error:.6e}, BTCS: {solvers[3].l2_error:.6e}\n")
 
-    print(f"[RUN C] Delta X = 0.05, Delta T = 0.0005 (Courant r = 0.2)")
-    print(f"FTCS Error:           {err_ftcs_C}")
-    print(f"DuFort-Frankel Error: {err_df_C}")
-    print(f"MOL / RK4 Error:      {err_rk4_C}")
-    print(f"BTCS Error:           {err_btcs_C}")
-
-    print(f"[RUN D] Delta X = 0.05, Delta T = 0.0001 (Courant r = 0.04)")
-    print(f"FTCS Error:           {err_ftcs_D}")
-    print(f"DuFort-Frankel Error: {err_df_D}")
-    print(f"MOL / RK4 Error:      {err_rk4_D}")
-    print(f"BTCS Error:           {err_btcs_D}")
-
-    print(f"[RUN E] Delta X = 0.05, Delta T = 0.00001 (Courant r = 0.004)")
-    print(f"FTCS Error:           {err_ftcs_E}")
-    print(f"DuFort-Frankel Error: {err_df_E}")
-    print(f"MOL / RK4 Error:      {err_rk4_E}")
-    print(f"BTCS Error:           {err_btcs_E}")
-
-    print(f"[RUN F] Delta X = 0.1, Delta T = 0.005 (Courant r = 0.5)")
-    print(f"FTCS Error:           {err_ftcs_F}")
-    print(f"DuFort-Frankel Error: {err_df_F}")
-    print(f"MOL / RK4 Error:      {err_rk4_F}")
-    print(f"BTCS Error:           {err_btcs_F}")
-
-  #  make_png()
-    
